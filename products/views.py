@@ -132,10 +132,10 @@ def filter_products(request):
         filter_query &= Q(price__lte=max_price) # Products with price <= max_price
 
     # Fetch products from database that match the constructed filter query
-    filter_products = Products.objects.filter(filter_query)
+    filtered_products = Products.objects.filter(filter_query)
 
     # Serialize the filtered products and convert them into JSON friendly format
-    serialized_results = ProductSerializer(filter_products, many=True).data
+    serialized_results = ProductSerializer(filtered_products, many=True).data
     
     # Return response with metadata
     return Response({
