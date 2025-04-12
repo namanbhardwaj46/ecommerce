@@ -11,5 +11,5 @@ urlpatterns = [
     # Maps the 'get_product' view, which returns a single product by ID.
     path('product/<int:id>/', views.get_product),
     # Maps the 'filter_product' view, which filters products based on query parameters.
-    path('filter-product/', views.filter_product),
+    path('filter-products/', views.filter_products),
 ]

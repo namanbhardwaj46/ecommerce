@@ -64,7 +64,7 @@ def get_product(request, id):
 
 
 @api_view(['GET'])
-def filter_product(request):
+def filter_products(request):
     """
     Filter products by name, description, and price range.
     """
