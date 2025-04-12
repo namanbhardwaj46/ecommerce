@@ -6,6 +6,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from products.models import Products
 from products.serializers import ProductSerializer
+from django.db.models import Q
 
 
 # Create your views here.
@@ -62,12 +63,85 @@ def get_product(request, id):
 
 
 
-# GET:
+@api_view(['GET'])
+def filter_product(request):
+    """
+    Filter products by name, description, and price range.
+    """
+    # Validation errors container
+    validation_errors = {}
+    
+    # Get filter parameters from query string
+    # Extract 'name' and 'description' from query parameters
+    name_query = request.GET.get('name', default=None)
+    description_query = request.GET.get('description', default=None)
 
-# /product/1 -> return me data
+    # Adding validation checks for name to check name parameter cannot be empty
+    if name_query is not None:
+        if not name_query.strip() or name_query in ['""', "''", "None"]:
+            validation_errors["name"] = "Product Name cannot be empty."
+    # print(f"name: {repr(name_query)}", type(name_query))  # Use repr() to see if it's None or an empty string
 
-# DELETE
-# /product/1 -> delete data...
+    min_price = request.GET.get('min_price', default=None)
+    max_price = request.GET.get('max_price', default=None)
+
+    # Validate price parameters
+    if min_price:
+        try:
+            min_price = float(min_price)
+            if min_price < 0:
+                validation_errors['min_price'] = "Price cannot be negative"
+        except ValueError:
+            validation_errors['min_price'] = "Must be a valid number"
+    
+    if max_price:
+        try:
+            max_price = float(max_price)
+            if max_price < 0:
+                validation_errors['max_price'] = "Price cannot be negative"
+        except ValueError:
+            validation_errors['max_price'] = "Must be a valid number"
+    
+    # Check if min_price is greater than max_price
+    if min_price and max_price and float(min_price) > float(max_price):
+        validation_errors['price_range'] = "Minimum price cannot be greater than maximum price"
+    
+    # If there are validation errors, return them
+    if validation_errors:
+        return Response(
+            {"errors": validation_errors}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Initialize an empty filter using Q objects to dynamically combine conditions
+    filter_query = Q()
+    
+    # Apply filters if parameters are provided
+    if name_query:
+        filter_query &= Q(name__icontains=name_query)
+
+    # Apply filters if parameters are provided
+    if description_query:
+        filter_query &= Q(description__icontains=description_query)
+
+    # Apply price range filters
+    if min_price:
+        filter_query &= Q(price__gte=min_price) # Products with price >= min_price
+    
+    if max_price:
+        filter_query &= Q(price__lte=max_price) # Products with price <= max_price
+
+    # Fetch products from database that match the constructed filter query
+    filter_products = Products.objects.filter(filter_query)
+
+    # Serialize the filtered products and convert them into JSON friendly format
+    serialized_results = ProductSerializer(filter_products, many=True).data
+    
+    # Return response with metadata
+    return Response({
+        'count': len(serialized_results),
+        'results': serialized_results
+    }, status=status.HTTP_200_OK)
 
 
-# TODO:  CREATE AN API FOR CREATING AND SAVING PRODUCT TO DATABASE...
+
