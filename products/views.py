@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from products.models import Products
-from products.serializers import ProductSerializer
+from products.serializers import ProductSerializer, CategorySerializer, OrderSerializer
 from django.db.models import Q
 
 
@@ -25,25 +25,21 @@ def hello(request):
 @api_view(['GET', 'POST'])
 def create_or_get_products(request):
     if request.method == 'GET':
-        try:
-            # Fetch all products from database.
-            data = Products.objects.all()
-            # Serialize the fetched data for JSON response.
-            serializedProducts = ProductSerializer(data, many=True)
-            return Response(serializedProducts.data) # Return the serialized data in a successful response.
-        except Products.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        # Fetch all products from database.
+        data = Products.objects.all()
+        # Serialize the fetched data for JSON response.
+        serializedProducts = ProductSerializer(data, many=True)
+        return Response(serializedProducts.data, status=status.HTTP_200_OK) # Return the serialized data in a successful response.
 
     elif request.method == 'POST':
         try:
             # Deserialize and validate the incoming data.
-            serializer = ProductSerializer(data=request.data)
-            if serializer.is_valid():
+            product_serializer = ProductSerializer(data=request.data)
+            if product_serializer.is_valid():
                 # Save the valid data into the database.
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_201_CREATED) # Success response
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) # Error response
+                product_serializer.save()
+                return Response(product_serializer.data, status=status.HTTP_201_CREATED) # Success response
+            return Response(product_serializer.errors, status=status.HTTP_400_BAD_REQUEST) # Error response
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) # Error response
 
@@ -51,7 +47,7 @@ def create_or_get_products(request):
 @api_view(['GET'])
 def get_product(request, id):
     try:
-        # Fetch product with given ID from database.
+        # Fetch product with given ID from the database.
         data = Products.objects.get(id=id)
         print(data)
         # Serialize the fetched data into a format suitable for JSON response.
@@ -67,6 +63,8 @@ def get_product(request, id):
 def filter_products(request):
     """
     Filter products by name, description, and price range.
+    Filtering products using AND conditions.
+    Filtering products using OR conditions is not implemented yet.
     """
     # Validation errors container
     validation_errors = {}
@@ -84,6 +82,7 @@ def filter_products(request):
 
     min_price = request.GET.get('min_price', default=None)
     max_price = request.GET.get('max_price', default=None)
+    # available = request.GET.get('is_available', default=None)
 
     # Validate price parameters
     if min_price:
@@ -131,10 +130,10 @@ def filter_products(request):
     if max_price:
         filter_query &= Q(price__lte=max_price) # Products with price <= max_price
 
-    # Fetch products from database that match the constructed filter query
+    # Fetch products from the database that match the constructed filter query
     filtered_products = Products.objects.filter(filter_query)
 
-    # Serialize the filtered products and convert them into JSON friendly format
+    # Serialize the filtered products and convert them into JSON-friendly format
     serialized_results = ProductSerializer(filtered_products, many=True).data
     
     # Return response with metadata
@@ -144,4 +143,28 @@ def filter_products(request):
     }, status=status.HTTP_200_OK)
 
 
+@api_view(["POST"])
+def create_category(request):
+    try:
+        data = request.data
+        category_serializer = CategorySerializer(data=data)
+        if category_serializer.is_valid():
+            category_serializer.save()
+            return Response(category_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(category_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["POST"])
+def create_order(request):
+    try:
+        data = request.data
+        order_serializer = OrderSerializer(data=data)
+        if order_serializer.is_valid():
+            order_serializer.save()
+            return Response(order_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(order_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

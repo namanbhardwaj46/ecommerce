@@ -12,4 +12,6 @@ urlpatterns = [
     path('product/<int:id>/', views.get_product),
     # Maps the 'filter_product' view, which filters products based on query parameters.
     path('filter-products/', views.filter_products),
+    # Maps the 'create_category' view, which creates a new category and saves it to the database.
+    path('create-category/', views.create_category),
 ]

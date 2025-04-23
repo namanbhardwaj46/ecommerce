@@ -16,16 +16,12 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.qodo" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
+      <excludeFolder url="file://$MODULE_DIR$/docs" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.10 (ecommerce)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.10 virtualenv at C:\Users\Naman\PycharmProjects\ecommerce\.venv" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Django" />
-    <option name="TEMPLATE_FOLDERS">
-      <list>
-        <option value="$MODULE_DIR$/../ecommerce\templates" />
-      </list>
-    </option>
   </component>
 </module>

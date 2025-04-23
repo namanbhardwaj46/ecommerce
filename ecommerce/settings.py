@@ -82,6 +82,15 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
+
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.mysql',
+    #     'NAME': 'product',
+    #     'USER': 'admin',
+    #     'PASSWORD': 'Admin1234',
+    #     'HOST': 'database-1.clqiqc24ao5u.ap-south-1.rds.amazonaws.com',
+    #     'PORT': '3306',
+    # }
 }
 
 

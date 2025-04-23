@@ -3,4 +3,8 @@
   <component name="Black">
     <option name="sdkName" value="Python 3.10 (ecommerce)" />
   </component>
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.10 virtualenv at C:\Users\Naman\PycharmProjects\ecommerce\.venv" project-jdk-type="Python SDK" />
+  <component name="PyPackaging">
+    <option name="earlyReleasesAsUpgrades" value="true" />
+  </component>
 </project>
