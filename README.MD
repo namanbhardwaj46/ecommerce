@@ -3,4 +3,3 @@
 3. pip install awsebcli
 
 5. eb deploy
-6. #mysqlclient==2.2.7
