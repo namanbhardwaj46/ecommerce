@@ -19,7 +19,7 @@ from django.urls import path, include
 from ecommerce import views
 
 urlpatterns = [
-       path('/', views.status),
+       path('health/', views.health, name='health'),
        path('admin/', admin.site.urls),
        path('api/', include('products.urls')),
 

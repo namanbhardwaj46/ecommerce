@@ -6,6 +6,6 @@ from rest_framework.decorators import api_view
 
 
 @api_view(['GET'])
-def status(request):
-    return HttpResponse('OK', status=status.HTTP_200_OK)
+def health(request):
+    return HttpResponse("OK", status=status.HTTP_200_OK)
 
