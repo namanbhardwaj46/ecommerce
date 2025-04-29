@@ -53,10 +53,21 @@ class Category(AuditableMixin):
 
 class Orders(AuditableMixin):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
-    products = models.ManyToManyField(Products, through='OrderItems', related_name='orders')
+    products = models.ManyToManyField(Products, through='OrderProduct', related_name='orders')
+
+    class OrderStatus(models.TextChoices):
+        PENDING = "pending", "Pending" # Order created but not paid yet
+        SUCCESS = "success", "Success" # Payment Successful
+        FAILED = "failed", "Failed" # Payment Failed
+
+    order_status = models.CharField(max_length=10, choices=OrderStatus.choices, default=OrderStatus.PENDING)
+
+    def __str__(self):
+        product_names = ", ".join([product.name for product in self.products.all()])
+        return f"Order #{self.id} by {self.user.name} - Products: {product_names}"
 
 
-class OrderItems(AuditableMixin):
+class OrderProduct(AuditableMixin):
     order = models.ForeignKey(Orders, on_delete=models.CASCADE, related_name='order_items')
     product = models.ForeignKey(Products, on_delete=models.CASCADE, related_name='order_items')
     quantity = models.PositiveIntegerField(default=1) # Ensure every order item has at least 1 product. Track product quantity.

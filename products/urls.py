@@ -9,9 +9,10 @@ urlpatterns = [
     # Maps the 'create_or_get_products' view, which returns all products or can create new products and save.
     path('products/', views.create_or_get_products),
     # Maps the 'get_product' view, which returns a single product by ID.
-    path('product/<int:id>/', views.get_product),
+    path('product/<int:id>/', views.get_product, name="get_product"),
     # Maps the 'filter_product' view, which filters products based on query parameters.
-    path('filter-products/', views.filter_products),
+    path('filter-products/', views.filter_products, name="filter_products"),
     # Maps the 'create_category' view, which creates a new category and saves it to the database.
-    path('create-category/', views.create_category),
+    path('create-category/', views.create_category, name="create_category"),
+    path('orders/', CreateListOrderView.as_view(), name="create-list-order"), # Creates or lists orders. (Class Based View)
 ]
