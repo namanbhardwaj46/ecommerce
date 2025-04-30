@@ -1,6 +1,7 @@
 from django.core.serializers import serialize
 from django.http import HttpResponse
 from django.shortcuts import render
+from pyexpat.errors import messages
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -160,7 +161,7 @@ def create_or_get_category(request):
             if category_serializer.is_valid():
                 # Save the valid data into the database.
                 category_serializer.save()
-                return Response(category_serializer.data, status=status.HTTP_201_CREATED) # Success response
+                return Response(category_serializer.data,messages="Category created successfully", status=status.HTTP_201_CREATED) # Success response
             return Response(category_serializer.errors, status=status.HTTP_400_BAD_REQUEST) # Error response
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) # Error response
