@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from products.models import Products, Orders
+from products.models import Products, Orders, Category
 from products.serializers import ProductSerializer, CategorySerializer, OrderSerializer
 from django.db.models import Q
 
@@ -144,17 +144,27 @@ def filter_products(request):
     }, status=status.HTTP_200_OK)
 
 
-@api_view(["POST"])
-def create_category(request):
-    try:
-        data = request.data
-        category_serializer = CategorySerializer(data=data)
-        if category_serializer.is_valid():
-            category_serializer.save()
-            return Response(category_serializer.data, status=status.HTTP_201_CREATED)
-        return Response(category_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+@api_view(["GET", "POST"])
+def create_or_get_category(request):
+    if request.method == "GET":
+        # Fetch all categories from the database.
+        data = Category.objects.all()
+        # Serialize the fetched data for JSON response.
+        category_serializer = CategorySerializer(data, many=True)
+        return Response(category_serializer.data, status=status.HTTP_200_OK)
+
+    elif request.method == "POST":
+        try:
+            # Deserialize and validate the incoming data.
+            category_serializer = CategorySerializer(data=request.data)
+            if category_serializer.is_valid():
+                # Save the valid data into the database.
+                category_serializer.save()
+                return Response(category_serializer.data, status=status.HTTP_201_CREATED) # Success response
+            return Response(category_serializer.errors, status=status.HTTP_400_BAD_REQUEST) # Error response
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) # Error response
+
 
 
 # Class based Orders Views

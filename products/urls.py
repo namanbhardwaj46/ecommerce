@@ -14,7 +14,7 @@ urlpatterns = [
     # Maps the 'filter_product' view, which filters products based on query parameters.
     path('filter-products/', views.filter_products, name="filter_products"),
     # Maps the 'create_category' view, which creates a new category and saves it to the database.
-    path('create-category/', views.create_category, name="create_category"),
+    path('categories/', views.create_or_get_category, name="create_or_get_category"),
     path('orders/', CreateListOrderView.as_view(), name="create-list-order"), # Creates or lists orders. (Class Based View)
     path('orders/<int:pk>', DetailOrderView.as_view(), name="detail-order") # Gets, updates, or deletes a specific order. (Class Based View)
 
