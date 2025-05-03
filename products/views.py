@@ -6,8 +6,9 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from products.models import Products, Orders, Category
-from products.serializers import ProductSerializer, CategorySerializer, OrderSerializer
+from products.models import Products, Category
+from products.serializers import ProductSerializer, CategorySerializer
+# from products.services import OrderCalculator
 from django.db.models import Q
 
 
@@ -24,6 +25,7 @@ def hello(request):
     return HttpResponse('Hello World!')
 
 
+# noinspection PyInconsistentReturns
 @api_view(['GET', 'POST'])
 def create_or_get_products(request):
     if request.method == 'GET':
@@ -145,6 +147,7 @@ def filter_products(request):
     }, status=status.HTTP_200_OK)
 
 
+# noinspection PyInconsistentReturns
 @api_view(["GET", "POST"])
 def create_or_get_category(request):
     if request.method == "GET":
@@ -161,66 +164,31 @@ def create_or_get_category(request):
             if category_serializer.is_valid():
                 # Save the valid data into the database.
                 category_serializer.save()
-                return Response(category_serializer.data,messages="Category created successfully", status=status.HTTP_201_CREATED) # Success response
+
+                # ** operator is used to unpack a dictionary into keyword arguments. When you use
+                # {**category_serializer.data, "message": "Category created successfully!"}, you are merging two
+                # dictionaries: category_serializer.data and {"message": "Category created successfully!"}.
+                return Response({**category_serializer.data, "message": "Category created successfully!"},
+                                status=status.HTTP_201_CREATED) # Success response
             return Response(category_serializer.errors, status=status.HTTP_400_BAD_REQUEST) # Error response
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) # Error response
 
 
+#PATCH allows partial updates without affecting others, and also can update fully.
+@api_view(['PATCH'])
+def update_product(request, id):
+    try:
+        product = Products.objects.get(id=id)  # Get the product
+        serialized_product = ProductSerializer(product, data=request.data, partial=True)  # Allow partial updates
 
-# Class based Orders Views
+        if serialized_product.is_valid():
+            serialized_product.save()  # Save changes
+            return Response(serialized_product.data, status=status.HTTP_200_OK)
 
-# View to create orders or get all orders.
-class CreateListOrderView(APIView):
-    def get(self, request):
-        # Fetch all orders from the database.
-        data = Orders.objects.all()
-        # Serialize the fetched data for JSON response.
-        order_serializer = OrderSerializer(data, many=True)
-        return Response(order_serializer.data, status=status.HTTP_200_OK)
+        return Response(serialized_product.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def post(self, request):
-        try:
-            # Create a new order with request data.
-            order_serializer = OrderSerializer(data=request.data)
-            if order_serializer.is_valid():
-                order_serializer.save()
-                return Response(order_serializer.data, status=status.HTTP_201_CREATED)
-            return Response(order_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Products.DoesNotExist:
+        return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
 
-# View to retrieve, update, or delete a specific order.
-class DetailOrderView(APIView):
-    def get_object(self, pk):
-        # Helper method to retrieve an order object by its primary key (pk).
-        try:
-            return Orders.objects.get(pk=pk)
-        except Orders.DoesNotExist:
-            return None
-    def get(self, request, pk):
-        # Retrieve details of a specific order.
-        order = self.get_object(pk)
-        if not order:
-            return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
-        serializer = OrderSerializer(order)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def patch(self, request, pk):
-        # Update details of a specific order partially or fully.
-        order = self.get_object(pk)
-        if not order:
-            return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
-        serializer = OrderSerializer(order, data=request.data, partial=True) # Partially update the order.
-        if serializer.is_valid():
-            serializer.save() # Save the updated order.
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk):
-        # Delete a specific order.
-        order = self.get_object(pk)
-        if not order:
-            return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
-        order.delete()
-        return Response({"message": "Order deleted successfully"}, status=status.HTTP_204_NO_CONTENT)

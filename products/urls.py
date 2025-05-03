@@ -2,7 +2,6 @@ from django.urls import path
 
 # from ecommerce.urls import urlpatterns
 from products import views
-from products.views import CreateListOrderView, DetailOrderView
 
 urlpatterns = [
     # Maps the 'hello' view, which could be an introductory or test endpoint
@@ -15,7 +14,7 @@ urlpatterns = [
     path('filter-products/', views.filter_products, name="filter_products"),
     # Maps the 'create_category' view, which creates a new category and saves it to the database.
     path('categories/', views.create_or_get_category, name="create_or_get_category"),
-    path('orders/', CreateListOrderView.as_view(), name="create-list-order"), # Creates or lists orders. (Class Based View)
-    path('orders/<int:pk>', DetailOrderView.as_view(), name="detail-order") # Gets, updates, or deletes a specific order. (Class Based View)
+    # Maps the 'update_product' view, which updates an existing product with provided data.
+    path("update_product/<int:id>", views.update_product, name="update_product"),
 
 ]
