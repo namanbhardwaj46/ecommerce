@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from products.models import Products, Category
+from products.models import Product, Category
 from products.serializers import ProductSerializer, CategorySerializer
 # from products.services import OrderCalculator
 from django.db.models import Q
@@ -15,12 +15,12 @@ from django.db.models import Q
 # Create your views here.
 
 def hello(request):
-    data = Products.objects.all()
+    data = Product.objects.all()
     data = data[0]
     print(data.name)
     data.name = "ABC"
     data.save()
-    data = Products.objects.get(id=1)
+    data = Product.objects.get(id=1)
     print(data.name)
     return HttpResponse('Hello World!')
 
@@ -30,7 +30,7 @@ def hello(request):
 def create_or_get_products(request):
     if request.method == 'GET':
         # Fetch all products from database.
-        data = Products.objects.all()
+        data = Product.objects.all()
         # Serialize the fetched data for JSON response.
         serializedProducts = ProductSerializer(data, many=True)
         return Response(serializedProducts.data, status=status.HTTP_200_OK) # Return the serialized data in a successful response.
@@ -52,13 +52,13 @@ def create_or_get_products(request):
 def get_product(request, id):
     try:
         # Fetch product with given ID from the database.
-        data = Products.objects.get(id=id)
+        data = Product.objects.get(id=id)
         print(data)
         # Serialize the fetched data into a format suitable for JSON response.
         serializedProducts = ProductSerializer(data)
         # Return the serialized data as an API response.
         return Response(serializedProducts.data, status=status.HTTP_200_OK)
-    except Products.DoesNotExist:
+    except Product.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND) # Requested product with given ID does not exist.
 
 
@@ -135,7 +135,7 @@ def filter_products(request):
         filter_query &= Q(price__lte=max_price) # Products with price <= max_price
 
     # Fetch products from the database that match the constructed filter query
-    filtered_products = Products.objects.filter(filter_query)
+    filtered_products = Product.objects.filter(filter_query)
 
     # Serialize the filtered products and convert them into JSON-friendly format
     serialized_results = ProductSerializer(filtered_products, many=True).data
@@ -179,7 +179,7 @@ def create_or_get_category(request):
 @api_view(['PATCH'])
 def update_product(request, id):
     try:
-        product = Products.objects.get(id=id)  # Get the product
+        product = Product.objects.get(id=id)  # Get the product
         serialized_product = ProductSerializer(product, data=request.data, partial=True)  # Allow partial updates
 
         if serialized_product.is_valid():
@@ -188,7 +188,7 @@ def update_product(request, id):
 
         return Response(serialized_product.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    except Products.DoesNotExist:
+    except Product.DoesNotExist:
         return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
