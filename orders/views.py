@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import Http404
-from .models import Orders
+from .models import Order
 from .serializers import OrderSerializer
 
 # Create your views here.
@@ -17,7 +17,7 @@ class CreateListOrderView(APIView):
     """
     def get(self, request):
         # Fetch all orders from the database with related products.
-        data = Orders.objects.prefetch_related('order_items').all()
+        data = Order.objects.prefetch_related('order_items').all()
         # Serialize the fetched data for JSON response.
         order_serializer = OrderSerializer(data, many=True)
         return Response(order_serializer.data, status=status.HTTP_200_OK)
@@ -38,8 +38,8 @@ class OrderDetailView(APIView):
     def get_object(self, pk):
         # Helper method to retrieve an order object by its primary key (pk).
         try:
-            return Orders.objects.get(pk=pk)
-        except Orders.DoesNotExist:
+            return Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
             return None
     def get(self, request, pk):
         # Retrieve details of a specific order.
