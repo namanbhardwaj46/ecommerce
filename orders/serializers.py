@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Orders, OrderProduct
+from .models import Order, OrderProduct
 from .services import OrderCalculator
 
 class OrderProductSerializer(serializers.ModelSerializer):
@@ -17,7 +17,7 @@ class OrderSerializer(serializers.ModelSerializer):
     """Main order serializer with nested items and calculations"""
     order_items = OrderProductSerializer(many=True)
     class Meta:
-        model = Orders
+        model = Order
         fields = ['id', 'user', 'status', 'order_items', 'products', 'subtotal', 'discount', 'tax_rate',
                   'shipping_cost', 'total', 'created_at']
         read_only_fields = ['subtotal', 'total', 'created_at']

@@ -4,7 +4,7 @@ from django.utils.timezone import datetime
 
 
 # Create your models here.
-class Products(AuditableMixin):
+class Product(AuditableMixin):
     """Main product model representing sellable items"""
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)

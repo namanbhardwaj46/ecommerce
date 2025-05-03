@@ -6,10 +6,10 @@ from utils.mixins import AuditableMixin
 
 # Create your models here.
 
-class Orders(AuditableMixin):
+class Order(AuditableMixin):
     """Main order model handling transaction details"""
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
-    products = models.ManyToManyField(Products, through='OrderProduct', related_name='orders')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='order')
+    products = models.ManyToManyField(Products, through='OrderProduct', related_name='order')
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     discount = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
@@ -31,7 +31,7 @@ class Orders(AuditableMixin):
 
 class OrderProduct(AuditableMixin):
     """Through model for product-order relationship with pricing details"""
-    order = models.ForeignKey(Orders, on_delete=models.CASCADE, related_name='order_items')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='order_items')
     product = models.ForeignKey(Products, on_delete=models.CASCADE, related_name='order_items')
     quantity = models.PositiveIntegerField(default=1) # Ensure every order item has at least 1 product. Track product quantity.
     price_at_time = models.DecimalField(max_digits=10, decimal_places=2)  # Price of the product when ordered
