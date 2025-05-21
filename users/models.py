@@ -7,6 +7,7 @@ class User(AuditableMixin):
     name = models.CharField(max_length=100)
 
     def __str__(self):
+        # Returns the user's name when displaying instances in admin or debugging
         return self.name
 
 

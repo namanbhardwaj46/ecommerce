@@ -53,7 +53,7 @@ def get_product(request, id):
     try:
         # Fetch product with given ID from the database.
         data = Product.objects.get(id=id)
-        print(data)
+        # print(data)
         # Serialize the fetched data into a format suitable for JSON response.
         serializedProducts = ProductSerializer(data)
         # Return the serialized data as an API response.

@@ -1,40 +1,94 @@
 from decimal import Decimal
+from django.db import transaction  # Used to manage database operations as a single atomic unit
+from .models import Order, OrderProduct # Import the core models for orders and their related products
 
 
-class OrderCalculator:
-    """Service class for handling complex order calculations"""
-    @classmethod
-    def calculate_order_total(cls, order, full_save=False):
+class OrderService:
+    """
+    A service layer to encapsulate core business logic related to orders.
+    This layer abstracts database transactions and business rules from the views.
+    """
+
+    @staticmethod
+    def create_order(user, products_data, **kwargs):
         """
-        Calculate all financial aspects of an order:
-        1. Calculate subtotal from line items
-        2. Apply absolute discount
-        3. Calculate taxes
-        4. Add shipping costs
-        5. Calculate final total
-        6. full_save: Whether to perform a full save on the order model.
-                          If False, only updates specific fields and saves them separately.
-                          This can improve performance when updating multiple orders at once.
-                          Defaults to False.
+        Creates a new order and its associated order products.
+        Args:
+            user: The user placing the order.
+            products_data: A list of product and quantity details.
+            **kwargs: Additional fields to populate the Order instance.
+        Returns:
+            The created Order instance.
         """
-        # Calculate base subtotal
-        order.subtotal = sum(item.line_total for item in order.order_items.all())
+        with transaction.atomic():  # Ensure all database operations within this block succeed or are rolled back.
+            # Create a new order for the specified user with any extra fields passed in kwargs
+            order = Order.objects.create(
+                user=user,
+                **kwargs
+            )
 
-        # Apply absolute discount (cannot make subtotal negative)
-        order.subtotal = max(order.subtotal - order.discount, Decimal('0.00'))
+            # Loop through the list of products to create associated order items
+            for product_data in products_data:
+                product = product_data['product']   # Extract the product instance from the data
+                OrderProduct.objects.create(    # Create a new OrderProduct entry
+                    order=order,    # Link it to the newly created order
+                    product=product,    # Link the specific product
+                    quantity=product_data['quantity'],  # Set the quantity for this order item
+                )
 
-        # Calculate tax amount
-        tax_amount = order.subtotal * (order.tax_rate / Decimal('100.00'))
+            # Recalculate the financial totals for the order (subtotal, tax, discounts, total, etc.)
+            order.calculate_totals()
 
-        # Calculate total with shipping
-        order.total = order.subtotal + tax_amount + order.shipping_cost
-
-        ## Save the calculated values
-
-        if full_save or not order.pk:
-            # New instance or explicit full save
+            # Save the updated order with calculated totals to the database
             order.save()
-        else:
-            # Optimized partial update
-            order.save(['subtotal', 'total', 'updated_at'])
-        return order
+            return order # Return the fully created and saved order object
+
+    @staticmethod
+    def update_order_status(order, new_status):
+        """
+        Updates the status of an existing order with proper validation.
+        Args:
+            order: The Order instance to update.
+            new_status: The new status to assign to the order.
+        """
+        with transaction.atomic():  # Ensure the status update happens safely in a single atomic block
+            order.status = new_status   # Assign the new status value to the order
+            order.full_clean()  # Validate the updated order data (e.g., ensure status is valid per model constraints)
+            order.save()    # Save the updated order to the database
+
+
+    @staticmethod
+    def add_product_to_order(order, products_data):
+        """
+        Adds new products to an existing order or updates the quantity of existing products.
+        Args:
+            order: The Order instance being modified.
+            products_data: A list of products and quantities to add to the order.
+        """
+        with transaction.atomic():  # Ensure consistency during the update process
+            # Loop through the provided list of products and their quantities
+            for item in products_data:
+                product = item['product']   # Extract the product instance from the data
+                quantity = item['quantity'] # Extract the quantity for this product
+
+                # Check if the product is already in the order
+                existing_item = order.order_items.filter(product=product).first()
+                if existing_item:   # If the product already exists in the order
+                    existing_item.quantity += quantity  # Increment the quantity by the specified amount
+                    existing_item.save()    # Save the updated OrderProduct entry
+                else:   # If the product does not exist in the order
+                    OrderProduct.objects.create(    # Create a new OrderProduct entry
+                        order=order,    # Link it to the existing order
+                        product=product,    # Specify the product
+                        quantity=quantity   # Set the quantity for this new entry
+                    )
+
+    @staticmethod
+    def calculate_order_totals(order):
+        """
+        Recalculates and updates the financial totals for a given order.
+        Args:
+            order: The Order instance whose totals need recalculating.
+        """
+        order.calculate_totals() # Call the model's method to perform the calculations (e.g., subtotal, tax, discounts)
+        order.save() # Save the recalculated totals to the database

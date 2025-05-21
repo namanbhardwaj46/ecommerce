@@ -43,7 +43,8 @@ INSTALLED_APPS = [
     'products',
     'rest_framework',
     'users',
-    'orders'
+    'orders',
+    'payments'
 
 ]
 
@@ -83,19 +84,19 @@ WSGI_APPLICATION = 'ecommerce.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # }
-
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'product',
-        'USER': 'admin',
-        'PASSWORD': 'Admin1234',
-        'HOST': 'database-1.clqiqc24ao5u.ap-south-1.rds.amazonaws.com',
-        'PORT': '3306',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
+
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.mysql',
+    #     'NAME': 'product',
+    #     'USER': 'admin',
+    #     'PASSWORD': 'Admin1234',
+    #     'HOST': 'database-1.clqiqc24ao5u.ap-south-1.rds.amazonaws.com',
+    #     'PORT': '3306',
+    # }
 }
 
 
@@ -139,4 +140,8 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+RAZORPAY_KEY_ID = "rzp_test_N0jKFxRQaMMyGs"
+RAZORPAY_KEY_SECRET = "ZKWViMDI0p7QeNvhc0V4F7Ua"
+PAYMENT_GATEWAY = "razorpay"
 
