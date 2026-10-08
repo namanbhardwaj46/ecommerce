@@ -16,12 +16,19 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from users.urls import auth_urlpatterns, user_urlpatterns
 
 urlpatterns = [
        path('admin/', admin.site.urls),
+
+       # Customer authentication - SimpleJWT
+       path("api/auth/", include(auth_urlpatterns)),
+
+       # OAuth2 Authorization Server - Django OAuth Toolkit
+       path("o/", include("oauth2_provider.urls", namespace="oauth2_provider")),
        path('api/products/', include('products.urls')),
        path("api/orders/", include('orders.urls')),
-       path("api/users/", include('users.urls')),
+       path("api/users/", include(user_urlpatterns)),
       path("api/payments/", include('payments.urls')),
 
 ]

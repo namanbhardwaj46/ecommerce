@@ -1,0 +1,131 @@
+# E-Commerce Platform Implementation Tasks (TODO.tsk)
+===============================================================================
+Target Stack: Python | Django | Django REST Framework | MySQL | Redis | Kafka | Microservices Architecture
+Generated On: 2026-09-11
+===============================================================================
+
+CURRENT STATE SUMMARY & GAP ANALYSIS
+-------------------------------------------------------------------------------
+[!] User Service:
+    - Current: Custom User model, JWT Authentication (SimpleJWT access & refresh tokens, token blacklisting on logout), User Registration API with password validation/hashing, User Login API, User Profile retrieval (`GET /api/auth/me/`), and basic CRUD views.
+    - Missing: Profile Update (`PATCH /api/v1/users/me/`), Password Change & Recovery flow (`change-password`, `forgot-password`, `reset-password`), Role-Based Access Control (RBAC) permission classes, and Unit/Integration tests.
+
+[!] Product Service:
+    - Current: Basic Product/Category models & basic CRUD views.
+    - Missing: DRF Standard Pagination, FilterBackends (django-filter, SearchFilter, OrderingFilter), Query Optimization (select_related, prefetch_related, indexing), Redis Cache integration (Product list/detail caching, cache invalidation on update/delete).
+
+[!] Razorpay Payment Service:
+    - Current: Basic Razorpay client abstraction & initial checkout views.
+    - Missing: Razorpay Webhook signature verification, transaction state machine (INITIATED -> PROCESSING -> SUCCESS / FAILED / REFUNDED), automatic Order status transitions upon payment events, Refund processing APIs.
+
+[!] Kafka Event-Driven Notification Pipeline:
+    - Current: Not implemented.
+    - Missing: Kafka Producer for Order & Payment lifecycle events (OrderPlaced, PaymentSuccessful, PaymentFailed, OrderDelivered), Kafka Consumer service for real-time customer notifications (Email/SMS/Push notifications), Event Schema contracts.
+
+[!] Microservices & Infrastructure Configuration:
+    - Current: Monolithic Django app on SQLite, environment variables hardcoded.
+    - Missing: Decoupled service boundaries / Modular apps, MySQL RDS/local DB setup, Redis cache configuration in Django settings, Kafka broker configuration & docker-compose for local microservices orchestration.
+
+[!] Distributed Tracing & Correlation ID Tracking:
+    - Current: Not implemented.
+    - Missing: Request-level correlation ID middleware (`X-Correlation-ID`), contextvars context tracking, custom logging filter to attach correlation ID across all log records, Kafka message header propagation, and consumer-side correlation context restoration.
+
+===============================================================================
+PENDING TASKS / TO-DO LIST
+===============================================================================
+
+1. USER SERVICE & AUTHENTICATION
+-------------------------------------------------------------------------------
+- [ ] 1.1 Implement remaining User Profile Lifecycle endpoints:
+      - [ ] `PATCH /api/v1/users/me/` - Update profile details & shipping address
+      - [ ] `POST /api/v1/users/change-password/` - Secure password change
+      - [ ] `POST /api/v1/users/forgot-password/` & `/reset-password/` - Password recovery flow
+- [ ] 1.2 Implement Role-Based Access Control (RBAC) (Customer, Merchant, Admin permissions).
+- [ ] 1.3 Add Unit and Integration tests for User Service & JWT auth.
+
+2. PRODUCT SERVICE, SEARCH, PAGINATION & REDIS CACHING
+-------------------------------------------------------------------------------
+- [ ] 2.1 Refactor Product views to DRF generic ViewSets (`ModelViewSet` or `ReadOnlyModelViewSet`).
+- [ ] 2.2 Configure DRF standard pagination (`PageNumberPagination` / `LimitOffsetPagination`).
+- [ ] 2.3 Implement robust filtering and search:
+      - [ ] Install and configure `django-filter`
+      - [ ] Add filters for category, price range, stock availability, rating
+      - [ ] Add `SearchFilter` on product name, description, and brand
+      - [ ] Add `OrderingFilter` on price, creation date, and popularity
+- [ ] 2.4 Optimize Django ORM queries:
+      - [ ] Use `select_related('category')` and `prefetch_related` for related models
+      - [ ] Add database indexes on `price`, `created_at`, and search fields in `Product` model
+- [ ] 2.5 Implement Redis Caching layer:
+      - [ ] Install `django-redis` and configure `CACHES` backend in `settings.py`
+      - [ ] Implement caching on high-traffic endpoints (`GET /api/v1/products/`, `GET /api/v1/products/<id>/`) with TTL
+      - [ ] Implement cache invalidation hooks on product create, update, and delete (signals or service layer)
+- [ ] 2.6 Add Unit and Integration tests for Product CRUD, search filters, and Redis cache hits/misses.
+
+3. RAZORPAY PAYMENT SERVICE & ORDER LIFECYCLE TRACKING
+-------------------------------------------------------------------------------
+- [ ] 3.1 Store `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET` in environment variables (`python-dotenv` / `django-environ`).
+- [ ] 3.2 Implement Order Creation API (`POST /api/v1/orders/`) calculating total, subtotal, taxes, and shipping atomically with inventory validation.
+- [ ] 3.3 Implement Razorpay Order creation API (`POST /api/v1/payments/create-order/`) communicating with Razorpay SDK.
+- [ ] 3.4 Implement Payment Verification API (`POST /api/v1/payments/verify/`) to verify cryptographic HMAC signatures.
+- [ ] 3.5 Implement Razorpay Webhook Handler (`POST /api/v1/payments/webhook/`):
+      - [ ] Verify webhook signature with `RAZORPAY_WEBHOOK_SECRET`
+      - [ ] Handle `payment.captured`, `payment.failed`, `order.paid`, `refund.processed`
+      - [ ] Make webhook processing idempotent to handle retries safely
+- [ ] 3.6 Synchronize Order Lifecycle state machine:
+      - [ ] Transition Order status: PENDING -> PAID upon verified payment
+      - [ ] Update Order `paid_amount`, `completed_at`, and stock reservations
+- [ ] 3.7 Implement Refund API (`POST /api/v1/payments/refund/`) with Razorpay refund API.
+- [ ] 3.8 Add Unit and Integration tests for Razorpay payment creation, verification, and webhook handlers.
+
+4. KAFKA EVENT-DRIVEN NOTIFICATION PIPELINE
+-------------------------------------------------------------------------------
+- [ ] 4.1 Install and configure Kafka client library (`confluent-kafka` or `kafka-python`).
+- [ ] 4.2 Define Event Schemas and Topics:
+      - [ ] Topic: `order-events` (`OrderPlaced`, `OrderCancelled`, `OrderDelivered`)
+      - [ ] Topic: `payment-events` (`PaymentInitiated`, `PaymentSuccess`, `PaymentFailed`, `PaymentRefunded`)
+      - [ ] Topic: `notification-events` (`SendEmail`, `SendSMS`, `SendPush`)
+- [ ] 4.3 Implement Event Producer module (`utils/kafka_producer.py` / `events/producers/`):
+      - [ ] Publish `OrderPlaced` event when order is created
+      - [ ] Publish `PaymentSuccess` / `PaymentFailed` events upon payment verification or webhook
+- [ ] 4.4 Implement Kafka Consumer Service (`consumers/notification_consumer.py` or dedicated service):
+      - [ ] Consume `order-events` and `payment-events`
+      - [ ] Trigger real-time notifications (Order confirmation emails, SMS invoice, real-time alert dispatch)
+      - [ ] Implement retry mechanism and Dead Letter Queue (DLQ) for failed notification delivery
+- [ ] 4.5 Add integration tests and producer/consumer mock tests.
+
+5. DATABASE & INFRASTRUCTURE CONFIGURATION (MySQL, Redis, Kafka, Microservices)
+-------------------------------------------------------------------------------
+- [ ] 5.1 Environment Configuration:
+      - [ ] Create `.env.example` and `.env` handling DB, Redis, Kafka, and Razorpay credentials
+- [ ] 5.2 MySQL Database Setup:
+      - [ ] Configure `DATABASES` with `django.db.backends.mysql` & `pymysql`
+      - [ ] Run and test Django migrations on MySQL
+- [ ] 5.3 Microservices Architecture / Dockerization:
+      - [ ] Create `docker-compose.yml` defining services:
+            - `web` (Django App / API Gateway)
+            - `db` (MySQL 8.0)
+            - `redis` (Redis Cache & Session store)
+            - `zookeeper` & `kafka` (Kafka Message Broker)
+            - `notification-service` (Kafka Event Consumer)
+      - [ ] Create `Dockerfile` with multi-stage production build
+- [ ] 5.4 API Documentation & Versioning:
+      - [ ] Set up `drf-spectacular` or `drf-yasg` for Swagger/OpenAPI documentation
+      - [ ] Group endpoints under `/api/v1/` prefix
+
+6. DISTRIBUTED TRACING & CORRELATION ID (End-to-End Request Tracking)
+-------------------------------------------------------------------------------
+- [ ] 6.1 Implement `CorrelationIdMiddleware` in `utils/middleware.py`:
+      - [ ] Extract `X-Correlation-ID` from incoming HTTP request headers or generate a UUID4
+      - [ ] Store correlation ID in Python `contextvars` for thread-safe & async-safe execution context
+      - [ ] Attach `X-Correlation-ID` header to all outgoing HTTP responses
+- [ ] 6.2 Configure Django Structured Logging with Correlation ID:
+      - [ ] Create custom `CorrelationIdFilter` (`logging.Filter`) to inject `correlation_id` into log records
+      - [ ] Update `LOGGING` formatters in `settings.py` with `[%(correlation_id)s]` prefix
+- [ ] 6.3 Kafka Header Propagation:
+      - [ ] Inject `correlation_id` into Kafka message headers during event publishing (`kafka_producer.py`)
+      - [ ] Extract `correlation_id` from Kafka message headers in consumers (`notification_consumer.py`) and set contextvars for downstream consumer logs
+- [ ] 6.4 Downstream / Outgoing Service Call Propagation:
+      - [ ] Propagate `X-Correlation-ID` in outgoing HTTP clients / Payment Gateway requests
+- [ ] 6.5 Add Unit and Integration tests for Correlation ID middleware, Kafka header injection, and logging filters.
+
+===============================================================================
