@@ -2,6 +2,7 @@ from django.urls import path
 
 # from ecommerce.urls import urlpatterns
 from products import views
+from .views import PageViewSet
 
 urlpatterns = [
     # Maps the 'hello' view, which could be an introductory or test endpoint
@@ -16,5 +17,8 @@ urlpatterns = [
     path('categories/', views.create_or_get_category, name="create_or_get_category"),
     # Maps the 'update_product' view, which updates an existing product with provided data.
     path("update_product/<int:id>", views.update_product, name="update_product"),
-
+    # Maps the 'delete_product' view, which deletes a product by ID.
+    path("delete_product/<int:id>", views.delete_product, name="delete_product"),
+    # Maps the 'PageViewSet' view, which handles pagination for products with filtering and searching.
+    path('search/', PageViewSet.as_view(), name="page_products"),
 ]

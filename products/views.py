@@ -1,31 +1,47 @@
 from django.core.serializers import serialize
 from django.http import HttpResponse
+from django.core.cache import cache
 from django.shortcuts import render
-from pyexpat.errors import messages
-from rest_framework import status
-from rest_framework.decorators import api_view
+
+from oauth2_provider.decorators import protected_resource
+from rest_framework import status, viewsets
+from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.views import APIView
 from products.models import Product, Category
 from products.serializers import ProductSerializer, CategorySerializer
 # from products.services import OrderCalculator
 from django.db.models import Q
 
+from Demos.mmapfile_demo import page_size
+
 
 # Create your views here.
 
 def hello(request):
+
+    # Scenario 1 - Why data is not updated and return updated name
     data = Product.objects.all()
+
+    print(data[0].name)
+
+    data[0].name = "ABC"
+
+    data[0].save()
+
+    print(data[0].name)
+
+    # Scenario 2 - Why data is updated and return updated name
     data = data[0]
     print(data.name)
     data.name = "ABC"
     data.save()
-    data = Product.objects.get(id=1)
+    # data = Product.objects.get(id=1)
     print(data.name)
     return HttpResponse('Hello World!')
 
 
-# noinspection PyInconsistentReturns
 @api_view(['GET', 'POST'])
 def create_or_get_products(request):
     if request.method == 'GET':
@@ -51,13 +67,26 @@ def create_or_get_products(request):
 @api_view(['GET'])
 def get_product(request, id):
     try:
+        # first check the cache before retrieve data from the db
+        cache_key = f'products_{id}'
+        data = cache.get(cache_key)
+        if data:
+            return Response(data, status=status.HTTP_200_OK)
+
         # Fetch product with given ID from the database.
         data = Product.objects.get(id=id)
         # print(data)
         # Serialize the fetched data into a format suitable for JSON response.
         serializedProducts = ProductSerializer(data)
+
+        # Extracts the serialized product data (in JSON format).
+        serializedData = serializedProducts.data
+
+        # set the serialized data as the value of the cache key
+        cache.set(cache_key, serializedData)
+
         # Return the serialized data as an API response.
-        return Response(serializedProducts.data, status=status.HTTP_200_OK)
+        return Response(serializedData, status=status.HTTP_200_OK)
     except Product.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND) # Requested product with given ID does not exist.
 
@@ -75,8 +104,8 @@ def filter_products(request):
     
     # Get filter parameters from query string
     # Extract 'name' and 'description' from query parameters
-    name_query = request.GET.get('name', default=None)
-    description_query = request.GET.get('description', default=None)
+    name_query = request.query_params.get('name', default=None)
+    description_query = request.query_params.get('description', default=None)
 
     # Adding validation checks for name to check name parameter cannot be empty
     if name_query is not None:
@@ -190,5 +219,56 @@ def update_product(request, id):
 
     except Product.DoesNotExist:
         return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['DELETE'])
+def delete_product(request, id):
+    try:
+        product = Product.objects.get(id=id)    # Fetch product by ID
+        product.delete()    # Delete the product from the database
+        return Response({'message': 'Product deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+    except Product.DoesNotExist:
+        return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+# Custom paginator to control page size limit
+class ProductPaginator(PageNumberPagination):
+    page_size = 10  # Default number of products per page
+    page_size_query_param = 'page_size' # Allows dynamic resizing via query params
+    max_page_size = 50  # Prevents excessive data requests that could slow down the server
+
+
+# API View get the filtered products with Post request and pagination applied
+class PageViewSet(APIView):
+
+    def post(self, request):
+
+        # Get search query and sorting preference from request body
+        query = request.data.get("query", "")
+        order_by = request.data.get("order_by", "-created_at")
+
+        # Validate ordering field to prevent unexpected errors
+        valid_ordering = {"created_at", "name", "price", "-created_at", "-name", "-price"}
+        if order_by not in valid_ordering:
+            order_by = "-created_at"  # Default fallback
+
+        # Build filtering query using Q() for flexibility
+        filters = Q()
+        if query:
+            filters |= Q(name__icontains=query) | Q(description__icontains=query)   # Case-insensitive search on name & description
+
+        # Fetch filtered and sorted products from the database
+        queryset = Product.objects.filter(filters).order_by(order_by)
+
+        # Apply pagination with error handling in this Post request to get the data
+        paginator = ProductPaginator()
+        try:
+            result = paginator.paginate_queryset(queryset, request)
+        except Exception as e:
+            return Response({'error': 'Invalid pagination parameters'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Serialize results before returning
+        serializer = ProductSerializer(result, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 
